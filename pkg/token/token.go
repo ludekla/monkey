@@ -26,3 +26,8 @@ type Token struct {
 	Type    string
 	Literal string
 }
+
+// Constructor function for tokens.
+func New(typ string, literal byte) Token {
+	return Token{typ, string(literal)}
+}

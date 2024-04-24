@@ -1,5 +1,7 @@
 package lexer
 
+import "monkey/pkg/token"
+
 type Lexer struct {
 	input    string
 	position int  // position in input string
@@ -9,7 +11,9 @@ type Lexer struct {
 
 // New is the Lexer factory.
 func New(input string) *Lexer {
-	return &Lexer{input: input}
+	lx := &Lexer{input: input}
+	lx.readChar()
+	return lx
 }
 
 // readChar advanced the reader pointer to the next char
@@ -22,4 +26,32 @@ func (l *Lexer) readChar() {
 	}
 	l.position = l.readPos
 	l.readPos++
+}
+
+// Next inspects the current byte and returns its
+// correspnding token.
+func (l *Lexer) Next() token.Token {
+	var tok token.Token
+	switch l.ch {
+	case '=':
+		tok = token.New(token.ASSIGN, l.ch)
+	case ';':
+		tok = token.New(token.SEMICOLON, l.ch)
+	case '(':
+		tok = token.New(token.LPAREN, l.ch)
+	case ')':
+		tok = token.New(token.RPAREN, l.ch)
+	case '{':
+		tok = token.New(token.LBRACE, l.ch)
+	case '}':
+		tok = token.New(token.RBRACE, l.ch)
+	case ',':
+		tok = token.New(token.COMMA, l.ch)
+	case '+':
+		tok = token.New(token.PLUS, l.ch)
+	case 0:
+		tok = token.Token{Type: token.EOF, Literal: ""}
+	}
+	l.readChar()
+	return tok
 }
