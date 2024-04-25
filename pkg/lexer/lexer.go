@@ -9,6 +9,11 @@ type Lexer struct {
 	ch       byte // current char under examination
 }
 
+// isLetter is a helper function.
+func isLetter(ch byte) bool {
+	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
 // New is the Lexer factory.
 func New(input string) *Lexer {
 	lx := &Lexer{input: input}
@@ -51,7 +56,24 @@ func (l *Lexer) Next() token.Token {
 		tok = token.New(token.PLUS, l.ch)
 	case 0:
 		tok = token.Token{Type: token.EOF, Literal: ""}
+	default:
+		if isLetter(l.ch) {
+			tok.Type = token.IDENT
+			tok.Literal = l.readIdent()
+			return tok
+		} else {
+			tok = token.New(token.ILLEGAL, l.ch)
+		}
 	}
 	l.readChar()
 	return tok
+}
+
+// readIdent reads a identifier.
+func (l *Lexer) readIdent() string {
+	pos := l.position
+	for isLetter(l.ch) {
+		l.readChar()
+	}
+	return l.input[pos:l.position]
 }
