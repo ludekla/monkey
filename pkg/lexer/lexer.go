@@ -9,9 +9,14 @@ type Lexer struct {
 	ch       byte // current char under examination
 }
 
-// isLetter is a helper function.
+// isLetter is a helper function to check for digits.
 func isLetter(ch byte) bool {
 	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
+}
+
+// isDigit is a helper function to check for digits.
+func isDigit(ch byte) bool {
+	return '0' <= ch && ch <= '9'
 }
 
 // New is the Lexer factory.
@@ -25,7 +30,7 @@ func New(input string) *Lexer {
 // within the input string.
 func (l *Lexer) readChar() {
 	if l.readPos >= len(l.input) {
-		l.ch = 0 // go to the beginning
+		l.ch = 0
 	} else {
 		l.ch = l.input[l.readPos]
 	}
@@ -37,6 +42,9 @@ func (l *Lexer) readChar() {
 // correspnding token.
 func (l *Lexer) Next() token.Token {
 	var tok token.Token
+	// skip whitepspace
+	l.skipWhiteSpace()
+	// inspect
 	switch l.ch {
 	case '=':
 		tok = token.New(token.ASSIGN, l.ch)
@@ -58,8 +66,12 @@ func (l *Lexer) Next() token.Token {
 		tok = token.Token{Type: token.EOF, Literal: ""}
 	default:
 		if isLetter(l.ch) {
-			tok.Type = token.IDENT
 			tok.Literal = l.readIdent()
+			tok.Type = token.LookupIdent(tok.Literal)
+			return tok
+		} else if isDigit(l.ch) {
+			tok.Type = token.INT
+			tok.Literal = l.readNumber()
 			return tok
 		} else {
 			tok = token.New(token.ILLEGAL, l.ch)
@@ -73,6 +85,23 @@ func (l *Lexer) Next() token.Token {
 func (l *Lexer) readIdent() string {
 	pos := l.position
 	for isLetter(l.ch) {
+		l.readChar()
+	}
+	return l.input[pos:l.position]
+}
+
+// skipWhiteSpace moves the cursor to the end
+// of the whitespace part.
+func (l *Lexer) skipWhiteSpace() {
+	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
+		l.readChar()
+	}
+}
+
+// readNumber reads as many digits as possible.
+func (l *Lexer) readNumber() string {
+	pos := l.position
+	for isDigit(l.ch) {
 		l.readChar()
 	}
 	return l.input[pos:l.position]

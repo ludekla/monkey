@@ -6,7 +6,7 @@ import (
 )
 
 type example struct {
-	expectedType    string
+	expectedType    token.TokenType
 	expectedLiteral string
 }
 
@@ -45,11 +45,11 @@ func TestNext1(t *testing.T) {
 	run(t, input, tests)
 }
 
-func testNext2(t *testing.T) {
+func TestNext2(t *testing.T) {
 	input := `
 	let five = 5;
 	let ten = 10;
-	let add = fn(x, x) {
+	let add = fn(x, y) {
 		x + y;
 	};
 	let result = add(five, ten);`
@@ -68,7 +68,7 @@ func testNext2(t *testing.T) {
 		{token.LET, "let"},
 		{token.IDENT, "add"},
 		{token.ASSIGN, "="},
-		{token.IDENT, "fn"},
+		{token.FUNCTION, "fn"},
 		{token.LPAREN, "("},
 		{token.IDENT, "x"},
 		{token.COMMA, ","},
@@ -80,6 +80,7 @@ func testNext2(t *testing.T) {
 		{token.IDENT, "y"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		{token.SEMICOLON, ";"},
 		{token.LET, "let"},
 		{token.IDENT, "result"},
 		{token.ASSIGN, "="},

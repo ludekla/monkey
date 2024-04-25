@@ -22,12 +22,26 @@ const (
 	LET      = "LET"
 )
 
+type TokenType string
+
 type Token struct {
-	Type    string
+	Type    TokenType
 	Literal string
 }
 
 // Constructor function for tokens.
-func New(typ string, literal byte) Token {
+func New(typ TokenType, literal byte) Token {
 	return Token{typ, string(literal)}
+}
+
+var keywords = map[string]TokenType{
+	"fn":  FUNCTION,
+	"let": LET,
+}
+
+func LookupIdent(ident string) TokenType {
+	if tok, ok := keywords[ident]; ok {
+		return tok
+	}
+	return IDENT
 }
