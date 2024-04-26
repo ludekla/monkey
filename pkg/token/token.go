@@ -1,6 +1,9 @@
 package token
 
 // Token types.
+type TokenType string
+
+// List of token types.
 const (
 	ILLEGAL = "ILLEGAL"
 	EOF     = "EOF"
@@ -8,8 +11,16 @@ const (
 	IDENT = "IDENT"
 	INT   = "INT"
 	// Operators
-	ASSIGN = "="
-	PLUS   = "+"
+	ASSIGN   = "="
+	PLUS     = "+"
+	MINUS    = "-"
+	ASTERISK = "*"
+	SLASH    = "/"
+	GT       = ">"
+	LT       = "<"
+	BANG     = "!"
+	EQ       = "=="
+	NEQ      = "!="
 	// Delimiters
 	COMMA     = ","
 	SEMICOLON = ";"
@@ -20,9 +31,12 @@ const (
 	// Keywords
 	FUNCTION = "FUNCTION"
 	LET      = "LET"
+	IF       = "IF"
+	ELSE     = "ELSE"
+	TRUE     = "TRUE"
+	FALSE    = "FALSE"
+	RETURN   = "RETURN"
 )
-
-type TokenType string
 
 type Token struct {
 	Type    TokenType
@@ -35,8 +49,13 @@ func New(typ TokenType, literal byte) Token {
 }
 
 var keywords = map[string]TokenType{
-	"fn":  FUNCTION,
-	"let": LET,
+	"fn":     FUNCTION,
+	"let":    LET,
+	"return": RETURN,
+	"true":   TRUE,
+	"false":  FALSE,
+	"if":     IF,
+	"else":   ELSE,
 }
 
 func LookupIdent(ident string) TokenType {

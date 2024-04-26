@@ -4,9 +4,9 @@ import "monkey/pkg/token"
 
 type Lexer struct {
 	input    string
-	position int  // position in input string
-	readPos  int  // current reading position, one after ch
-	ch       byte // current char under examination
+	ch       byte // Current char under examination.
+	position int  // Position of ch in the input string.
+	readPos  int  // Current reading position, one after ch.
 }
 
 // isLetter is a helper function to check for digits.
@@ -26,8 +26,9 @@ func New(input string) *Lexer {
 	return lx
 }
 
-// readChar advanced the reader pointer to the next char
-// within the input string.
+// readChar fills the char field with the byte the
+// reading cursor currently points to and then advances
+// the cursor to the next char within the input string.
 func (l *Lexer) readChar() {
 	if l.readPos >= len(l.input) {
 		l.ch = 0
@@ -38,8 +39,11 @@ func (l *Lexer) readChar() {
 	l.readPos++
 }
 
-// Next inspects the current byte and returns its
-// correspnding token.
+// Next inspects the current byte and returns the
+// corresponding token if it is a one-character token
+// or advances down to the end of the sequence of
+// non-whitespace characters and then returns the token
+// if it is a legal one.
 func (l *Lexer) Next() token.Token {
 	var tok token.Token
 	// skip whitepspace
@@ -47,6 +51,10 @@ func (l *Lexer) Next() token.Token {
 	// inspect
 	switch l.ch {
 	case '=':
+		if l.peekAhead() == '=' {
+			l.readChar()
+			return token.Token{Type: token.EQ, Literal: "=="}
+		}
 		tok = token.New(token.ASSIGN, l.ch)
 	case ';':
 		tok = token.New(token.SEMICOLON, l.ch)
@@ -62,6 +70,22 @@ func (l *Lexer) Next() token.Token {
 		tok = token.New(token.COMMA, l.ch)
 	case '+':
 		tok = token.New(token.PLUS, l.ch)
+	case '-':
+		tok = token.New(token.MINUS, l.ch)
+	case '*':
+		tok = token.New(token.ASTERISK, l.ch)
+	case '/':
+		tok = token.New(token.SLASH, l.ch)
+	case '>':
+		tok = token.New(token.GT, l.ch)
+	case '<':
+		tok = token.New(token.LT, l.ch)
+	case '!':
+		if l.peekAhead() == '=' {
+			l.readChar()
+			return token.Token{Type: token.NEQ, Literal: "!="}
+		}
+		tok = token.New(token.BANG, l.ch)
 	case 0:
 		tok = token.Token{Type: token.EOF, Literal: ""}
 	default:
@@ -105,4 +129,14 @@ func (l *Lexer) readNumber() string {
 		l.readChar()
 	}
 	return l.input[pos:l.position]
+}
+
+// peekAhead returns the next character without
+// advancing the cursor for inspection purposes.
+func (l *Lexer) peekAhead() byte {
+	if l.readPos == len(l.input) {
+		return 0
+	} else {
+		return l.input[l.readPos]
+	}
 }
