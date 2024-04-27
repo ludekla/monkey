@@ -64,7 +64,10 @@ func TestNextCode(t *testing.T) {
 		return true;
 	} else {
 		return false;
-	}`
+	}
+
+	10 == 10;
+	9 != 10;`
 
 	tests := []example{
 		{token.LET, "let"},
@@ -120,6 +123,14 @@ func TestNextCode(t *testing.T) {
 		{token.FALSE, "false"},
 		{token.SEMICOLON, ";"},
 		{token.RBRACE, "}"},
+		{token.INT, "10"},
+		{token.EQ, "=="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
+		{token.INT, "9"},
+		{token.NEQ, "!="},
+		{token.INT, "10"},
+		{token.SEMICOLON, ";"},
 		{token.EOF, ""},
 	}
 	run(t, input, tests)

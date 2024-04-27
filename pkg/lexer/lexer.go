@@ -53,9 +53,10 @@ func (l *Lexer) Next() token.Token {
 	case '=':
 		if l.peekAhead() == '=' {
 			l.readChar()
-			return token.Token{Type: token.EQ, Literal: "=="}
+			tok = token.Token{Type: token.EQ, Literal: "=="}
+		} else {
+			tok = token.New(token.ASSIGN, l.ch)
 		}
-		tok = token.New(token.ASSIGN, l.ch)
 	case ';':
 		tok = token.New(token.SEMICOLON, l.ch)
 	case '(':
@@ -83,9 +84,10 @@ func (l *Lexer) Next() token.Token {
 	case '!':
 		if l.peekAhead() == '=' {
 			l.readChar()
-			return token.Token{Type: token.NEQ, Literal: "!="}
+			tok = token.Token{Type: token.NEQ, Literal: "!="}
+		} else {
+			tok = token.New(token.BANG, l.ch)
 		}
-		tok = token.New(token.BANG, l.ch)
 	case 0:
 		tok = token.Token{Type: token.EOF, Literal: ""}
 	default:
@@ -134,7 +136,7 @@ func (l *Lexer) readNumber() string {
 // peekAhead returns the next character without
 // advancing the cursor for inspection purposes.
 func (l *Lexer) peekAhead() byte {
-	if l.readPos == len(l.input) {
+	if l.readPos >= len(l.input) {
 		return 0
 	} else {
 		return l.input[l.readPos]
