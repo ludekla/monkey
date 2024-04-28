@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"monkey/pkg/ast"
 	"monkey/pkg/lexer"
 	"monkey/pkg/token"
@@ -10,15 +11,21 @@ type Parser struct {
 	lx        *lexer.Lexer
 	currToken token.Token
 	peekToken token.Token
+	errors    []string
 }
 
 func New(lx *lexer.Lexer) *Parser {
-	p := &Parser{lx: lx}
+	p := &Parser{lx: lx, errors: []string{}}
 	// Read two tokens so that current and peek
 	// tokens are initialised.
 	p.Next()
 	p.Next()
 	return p
+}
+
+// Getter for error messages.
+func (p *Parser) Errors() []string {
+	return p.errors
 }
 
 func (p *Parser) Next() {
@@ -29,7 +36,7 @@ func (p *Parser) Next() {
 func (p *Parser) ParseProgramme() *ast.Programme {
 	prog := &ast.Programme{}
 	prog.Statements = make([]ast.Statement, 0, 10)
-	for p.currToken.Type != token.EOF {
+	for !p.currTokenIs(token.EOF) {
 		stm := p.ParseStatement()
 		if stm != nil {
 			prog.Statements = append(prog.Statements, stm)
@@ -58,16 +65,34 @@ func (p *Parser) parseLetStatement() ast.Statement {
 		return nil
 	}
 	// TODO
-	for p.currToken.Type != token.SEMICOLON {
+	for !p.currTokenIs(token.SEMICOLON) {
 		p.Next()
 	}
 	return stm
 }
 
 func (p *Parser) expectPeek(t token.TokenType) bool {
-	if p.peekToken.Type == t {
+	if p.peekTokenIs(t) {
 		p.Next()
 		return true
 	}
+	p.peekError(t)
 	return false
+}
+
+// Helpers.
+func (p *Parser) peekTokenIs(t token.TokenType) bool {
+	return p.peekToken.Type == t
+}
+
+func (p *Parser) currTokenIs(t token.TokenType) bool {
+	return p.currToken.Type == t
+}
+
+func (p *Parser) peekError(t token.TokenType) {
+	msg := fmt.Sprintf(
+		"expected next token to be %s, got %s instead",
+		t, p.peekToken.Type,
+	)
+	p.errors = append(p.errors, msg)
 }

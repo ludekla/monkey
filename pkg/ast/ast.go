@@ -18,7 +18,8 @@ type Expression interface {
 }
 
 // Programme implements the Node interface.
-// It represents the root node of the AST.
+// It represents the root node of the AST
+// and essentially holds a slice of statements.
 type Programme struct {
 	Statements []Statement
 }
@@ -31,6 +32,7 @@ func (p *Programme) TokenLiteral() string {
 	}
 }
 
+// Identifier implements the Expression interface.
 type Identifier struct {
 	Token token.Token // IDENT
 	Value string
