@@ -7,20 +7,44 @@ import (
 	"monkey/pkg/token"
 )
 
+const (
+	_ int = iota
+	LOWEST
+	EQUALS
+	LESSGREATER // < or >
+	SUM         // +
+	PRODUCT     // *
+	PREFIX      // -X or !X
+	CALL        // myFunc(X)
+)
+
+type (
+	prefixParserFn func() ast.Expression
+	infixParserFn  func(ast.Expression) ast.Expression
+)
+
 type Parser struct {
 	lx        *lexer.Lexer
 	currToken token.Token
 	peekToken token.Token
 	errors    []string
+	prefixers map[token.TokenType]prefixParserFn
+	infixers  map[token.TokenType]infixParserFn
 }
 
 func New(lx *lexer.Lexer) *Parser {
 	p := &Parser{lx: lx, errors: []string{}}
+	p.prefixers = make(map[token.TokenType]prefixParserFn)
+	p.prefixers[token.IDENT] = p.parseIdentifier
 	// Read two tokens so that current and peek
 	// tokens are initialised.
 	p.Next()
 	p.Next()
 	return p
+}
+
+func (p *Parser) parseIdentifier() ast.Expression {
+	return &ast.Identifier{Token: p.currToken, Value: p.currToken.Literal}
 }
 
 // Getter for error messages.
@@ -53,7 +77,7 @@ func (p *Parser) ParseStatement() ast.Statement {
 	case token.RETURN:
 		return p.parseReturnStatement()
 	default:
-		return nil
+		return p.parseExpressionStatement()
 	}
 }
 
@@ -107,4 +131,22 @@ func (p *Parser) parseReturnStatement() *ast.ReturnStatement {
 		p.Next()
 	}
 	return stm
+}
+
+func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
+	stm := &ast.ExpressionStatement{Token: p.currToken}
+	stm.Expression = p.parseExpression(LOWEST)
+	if p.peekTokenIs(token.SEMICOLON) {
+		p.Next()
+	}
+	return stm
+}
+
+func (p *Parser) parseExpression(precedence int) ast.Expression {
+	prefix := p.prefixers[p.currToken.Type]
+	if prefix == nil {
+		return nil
+	}
+	leftExpr := prefix()
+	return leftExpr
 }
