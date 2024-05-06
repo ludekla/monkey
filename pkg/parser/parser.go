@@ -5,6 +5,7 @@ import (
 	"monkey/pkg/ast"
 	"monkey/pkg/lexer"
 	"monkey/pkg/token"
+	"strconv"
 )
 
 const (
@@ -35,7 +36,11 @@ type Parser struct {
 func New(lx *lexer.Lexer) *Parser {
 	p := &Parser{lx: lx, errors: []string{}}
 	p.prefixers = make(map[token.TokenType]prefixParserFn)
+	// register parser functions
 	p.prefixers[token.IDENT] = p.parseIdentifier
+	p.prefixers[token.INT] = p.parseIntegerLiteral
+	p.prefixers[token.BANG] = p.parsePrefixExpression
+	p.prefixers[token.MINUS] = p.parsePrefixExpression
 	// Read two tokens so that current and peek
 	// tokens are initialised.
 	p.Next()
@@ -142,11 +147,38 @@ func (p *Parser) parseExpressionStatement() *ast.ExpressionStatement {
 	return stm
 }
 
+func (p *Parser) parseIntegerLiteral() ast.Expression {
+	lit := &ast.IntegerLiteral{Token: p.currToken}
+	value, err := strconv.ParseInt(p.currToken.Literal, 0, 64)
+	if err != nil {
+		msg := fmt.Sprintf("could not parse %q as int", p.currToken.Literal)
+		p.errors = append(p.errors, msg)
+		return nil
+	}
+	lit.Value = value
+	return lit
+}
+
 func (p *Parser) parseExpression(precedence int) ast.Expression {
 	prefix := p.prefixers[p.currToken.Type]
 	if prefix == nil {
+		msg := fmt.Sprintf(
+			"no prefix parse function for %s found",
+			p.currToken.Type,
+		)
+		p.errors = append(p.errors, msg)
 		return nil
 	}
 	leftExpr := prefix()
 	return leftExpr
+}
+
+func (p *Parser) parsePrefixExpression() ast.Expression {
+	expr := &ast.PrefixExpression{
+		Token:    p.currToken,
+		Operator: p.currToken.Literal,
+	}
+	p.Next()
+	expr.Right = p.parseExpression(PREFIX)
+	return expr
 }

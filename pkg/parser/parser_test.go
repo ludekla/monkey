@@ -122,3 +122,87 @@ func TestIdentExpression(t *testing.T) {
 		t.Errorf("token literal not 'foobar', got %s", ident.TokenLiteral())
 	}
 }
+
+func TestIntegerExpression(t *testing.T) {
+	input := "5;"
+	lx := lexer.New(input)
+	ps := New(lx)
+	prog := ps.ParseProgramme()
+	checkParserErrors(t, ps)
+	if len(prog.Statements) != 1 {
+		t.Fatalf(
+			"Programme has not enough statements, got %d.",
+			len(prog.Statements),
+		)
+	}
+	stm, ok := prog.Statements[0].(*ast.ExpressionStatement)
+	if !ok {
+		t.Fatalf(
+			"Statement is not ast.ExpressionStatement, got %T",
+			prog.Statements[0],
+		)
+	}
+	literal, ok := stm.Expression.(*ast.IntegerLiteral)
+	if !ok {
+		t.Fatalf("Expected *ast.IntegerLiteral, got %T", stm.Expression)
+	}
+	if literal.Value != 5 {
+		t.Errorf("ident.Value not 5, got %v", literal.Value)
+	}
+	if literal.TokenLiteral() != "5" {
+		t.Errorf("token literal not '5', got %s", literal.TokenLiteral())
+	}
+}
+
+func TestParsingPrefixExpressions(t *testing.T) {
+	prefixTests := []struct {
+		input    string
+		operator string
+		intValue int64
+	}{
+		{"!5", "!", 5},
+		{"-15", "-", 15},
+	}
+	for _, tt := range prefixTests {
+		lx := lexer.New(tt.input)
+		ps := New(lx)
+		prog := ps.ParseProgramme()
+		checkParserErrors(t, ps)
+		if len(prog.Statements) != 1 {
+			t.Fatalf(
+				"Programme does not have 1 statement, got %d.",
+				len(prog.Statements),
+			)
+		}
+		stm, ok := prog.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf(
+				"Statement is not ast.ExpressionStatement, got %T",
+				prog.Statements[0],
+			)
+		}
+		expr, ok := stm.Expression.(*ast.PrefixExpression)
+		if !ok {
+			t.Fatalf("Expected *ast.PrefixExpression, got %T", stm.Expression)
+		}
+		if expr.Operator != tt.operator {
+			t.Fatalf("Operator is not %q, got %s", tt.operator, expr.Operator)
+		}
+		if !testIntegerLiteral(t, expr.Right, tt.intValue) {
+			return
+		}
+	}
+}
+
+func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
+	integ, ok := il.(*ast.IntegerLiteral)
+	if !ok {
+		t.Errorf("il not *ast.IntegerLiteral, got %T", il)
+		return false
+	}
+	if integ.Value != value {
+		t.Errorf("integ.Value not %d, got %d", value, integ.Value)
+		return false
+	}
+	return true
+}
