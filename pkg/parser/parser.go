@@ -19,6 +19,17 @@ const (
 	CALL        // myFunc(X)
 )
 
+var precedences = map[token.TokenType]int{
+	token.EQ:       EQUALS,
+	token.NEQ:      EQUALS,
+	token.LT:       LESSGREATER,
+	token.GT:       LESSGREATER,
+	token.PLUS:     SUM,
+	token.MINUS:    SUM,
+	token.SLASH:    PRODUCT,
+	token.ASTERISK: PRODUCT,
+}
+
 type (
 	prefixParserFn func() ast.Expression
 	infixParserFn  func(ast.Expression) ast.Expression
@@ -41,6 +52,15 @@ func New(lx *lexer.Lexer) *Parser {
 	p.prefixers[token.INT] = p.parseIntegerLiteral
 	p.prefixers[token.BANG] = p.parsePrefixExpression
 	p.prefixers[token.MINUS] = p.parsePrefixExpression
+	p.infixers = make(map[token.TokenType]infixParserFn)
+	p.infixers[token.PLUS] = p.parseInfixExpression
+	p.infixers[token.MINUS] = p.parseInfixExpression
+	p.infixers[token.SLASH] = p.parseInfixExpression
+	p.infixers[token.ASTERISK] = p.parseInfixExpression
+	p.infixers[token.EQ] = p.parseInfixExpression
+	p.infixers[token.NEQ] = p.parseInfixExpression
+	p.infixers[token.LT] = p.parseInfixExpression
+	p.infixers[token.GT] = p.parseInfixExpression
 	// Read two tokens so that current and peek
 	// tokens are initialised.
 	p.Next()
@@ -170,6 +190,15 @@ func (p *Parser) parseExpression(precedence int) ast.Expression {
 		return nil
 	}
 	leftExpr := prefix()
+
+	for !p.peekTokenIs(token.SEMICOLON) && precedence < p.peekPrecedence() {
+		infix := p.infixers[p.peekToken.Type]
+		if infix == nil {
+			return leftExpr
+		}
+		p.Next()
+		leftExpr = infix(leftExpr)
+	}
 	return leftExpr
 }
 
@@ -180,5 +209,31 @@ func (p *Parser) parsePrefixExpression() ast.Expression {
 	}
 	p.Next()
 	expr.Right = p.parseExpression(PREFIX)
+	return expr
+}
+
+func (p *Parser) peekPrecedence() int {
+	if pd, ok := precedences[p.peekToken.Type]; ok {
+		return pd
+	}
+	return LOWEST
+}
+
+func (p *Parser) currPrecedence() int {
+	if pd, ok := precedences[p.currToken.Type]; ok {
+		return pd
+	}
+	return LOWEST
+}
+
+func (p *Parser) parseInfixExpression(left ast.Expression) ast.Expression {
+	expr := &ast.InfixExpression{
+		Token:    p.currToken,
+		Operator: p.currToken.Literal,
+		Left:     left,
+	}
+	prec := p.currPrecedence()
+	p.Next()
+	expr.Right = p.parseExpression(prec)
 	return expr
 }

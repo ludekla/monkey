@@ -206,3 +206,86 @@ func testIntegerLiteral(t *testing.T, il ast.Expression, value int64) bool {
 	}
 	return true
 }
+
+func TestParsingInfixExpressions(t *testing.T) {
+	infixTests := []struct {
+		input      string
+		leftValue  int64
+		operator   string
+		rightValue int64
+	}{
+		{"5 + 5;", 5, "+", 5},
+		{"5 - 5;", 5, "-", 5},
+		{"5 * 5;", 5, "*", 5},
+		{"5 / 5;", 5, "/", 5},
+		{"5 < 5;", 5, "<", 5},
+		{"5 > 5;", 5, ">", 5},
+		{"5 == 5;", 5, "==", 5},
+		{"5 != 5;", 5, "!=", 5},
+	}
+	for _, tt := range infixTests {
+		lx := lexer.New(tt.input)
+		ps := New(lx)
+		prog := ps.ParseProgramme()
+		checkParserErrors(t, ps)
+		if len(prog.Statements) != 1 {
+			t.Fatalf(
+				"Progamme.Statements does not contain 1 statement, got %d",
+				len(prog.Statements),
+			)
+		}
+		stm, ok := prog.Statements[0].(*ast.ExpressionStatement)
+		if !ok {
+			t.Fatalf(
+				"Statement is not an ExpressionStatement, got %T",
+				prog.Statements[0],
+			)
+		}
+		expr, ok := stm.Expression.(*ast.InfixExpression)
+		if !ok {
+			t.Fatalf(
+				"Statement is not an InfixExpression, got %T",
+				stm.Expression,
+			)
+		}
+		if !testIntegerLiteral(t, expr.Left, tt.leftValue) {
+			return
+		}
+		if expr.Operator != tt.operator {
+			t.Fatalf("operator is not %q, got %s", tt.operator, expr.Operator)
+		}
+		if !testIntegerLiteral(t, expr.Right, tt.rightValue) {
+			return
+		}
+	}
+}
+
+func TestOperatorPrecedenceParsing(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected string
+	}{
+		{"-a * b", "((-a) * b)"},
+		{"!-a", "(!(-a))"},
+		{"a + b + c", "((a + b) + c)"},
+		{"a + b - c", "((a + b) - c)"},
+		{"a * b * c", "((a * b) * c)"},
+		{"a * b / c", "((a * b) / c)"},
+		{"a + b / c", "(a + (b / c))"},
+		{"a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"},
+		{"3 + 4; -5 * 5", "(3 + 4)((-5) * 5)"},
+		{"5 > 4 == 3 < 4", "((5 > 4) == (3 < 4))"},
+		{"3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"},
+	}
+
+	for _, tt := range tests {
+		lx := lexer.New(tt.input)
+		ps := New(lx)
+		prog := ps.ParseProgramme()
+		checkParserErrors(t, ps)
+		actual := prog.String()
+		if actual != tt.expected {
+			t.Errorf("expected %q, got %q", tt.expected, actual)
+		}
+	}
+}
